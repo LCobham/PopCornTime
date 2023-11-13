@@ -68,7 +68,11 @@ class ShowComand extends Command {
 
             if (gettype($rowInfo) === "string" || gettype($rowInfo) === "int" ) {
 
-                $rows[] = [$rowTitle, $rowInfo];
+                $columns = getenv('COLUMNS') ?? 40; // Get number of cols in the terminal window
+                $rowTitleWidth = 18;
+                $max_width = ($columns - $rowTitleWidth > 20)? $columns - $rowTitleWidth: 20;
+    
+                $rows[] = [$rowTitle, wordwrap($rowInfo, $max_width)];
             }
         }
 
