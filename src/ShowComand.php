@@ -28,11 +28,16 @@ class ShowComand extends Command {
             ->addOption('type', 'type')
             ->url;
 
-        $movieInfo = $this->getMovieInfo($url, $output);
+        [$movieInfo, $statusCode] = $this->getMovieInfo($url, $output);
 
-        if ($movieInfo->Response !== 'True') {
-            $output->writeln($movieInfo->Error);
-            
+        if (! $movieInfo || $movieInfo->Response !== 'True') {
+
+            $errorMessage = (! $movieInfo) ? 
+                "Oops! Looks like something went wrong ({$statusCode})\n" :
+                "Movie not found!\n";
+
+            $output->writeln($errorMessage);
+
             return EXIT_FAILURE;
         }
 
@@ -49,31 +54,28 @@ class ShowComand extends Command {
         $status = $response->getStatusCode();
 
         if ($status !== 200) {
-            $out->writeln(
-                "Oops! Looks like something went wrong ({$status})"
-            );
-
-            exit(EXIT_FAILURE);
+            return [null, $status];
         }
 
-        return json_decode($response->getBody());
+        return [new Movie($response), $status];
     }
 
-    protected function displayAsTable(object $movie, OutputInterface $out)
+    protected function displayAsTable(Movie $movie, OutputInterface $out)
     {
         $table = new Table($out);
 
-        $rows = [];
-        foreach($movie as $rowTitle => $rowInfo) {
+        $rows = [
+            ['Title', $movie->Title],
+            ['Year', $movie->Year]
+        ];
 
-            if (gettype($rowInfo) === "string" || gettype($rowInfo) === "int" ) {
+        foreach($movie->info as $rowTitle => $rowInfo) {
 
-                $columns = getenv('COLUMNS') ?? 40; // Get number of cols in the terminal window
-                $rowTitleWidth = 18;
-                $max_width = ($columns - $rowTitleWidth > 20)? $columns - $rowTitleWidth: 20;
-    
-                $rows[] = [$rowTitle, wordwrap($rowInfo, $max_width)];
-            }
+            $columns = getenv('COLUMNS') ?? 40; // Get number of cols in the terminal window
+            $rowTitleWidth = 18;
+            $max_width = ($columns - $rowTitleWidth > 20)? $columns - $rowTitleWidth: 20;
+
+            $rows[] = [$rowTitle, wordwrap($rowInfo, $max_width)];
         }
 
         $table->setRows($rows)
