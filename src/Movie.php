@@ -1,29 +1,27 @@
 <?php namespace Acme;
 
-use Psr\Http\Message\ResponseInterface;
-
 class Movie {
-    public string $Title, $Year, $Response;
+    public string $title;
+    public string $year;
     public array $info = [];
 
-    public function __construct(ResponseInterface $response)
+    public static function fromResponse(object $parsedResponse)
     {
-        $parsed = json_decode($response->getBody());
+        $movie = new Movie();
 
-        $this->Title = $parsed->Title;
-        $this->Year = $parsed->Year;
-        $this->Response = $parsed->Response;
+        $movie->title = $parsedResponse->Title;
+        $movie->year = $parsedResponse->Year;
 
-        unset($parsed->Title);
-        unset($parsed->Year);
-        unset($parsed->Response);
+        unset($parsedResponse->Title);
+        unset($parsedResponse->Year);
+        unset($parsedResponse->Response);
 
-        foreach($parsed as $property => $value) {
-            if (gettype($value) === 'string' || gettype($value) === 'int') {
-                $this->info[$property] = $value;
+        foreach($parsedResponse as $property => $value) {
+            if (is_string($value)) {
+                $movie->info[$property] = $value;
             }
         }
 
-        return $this;
+        return $movie;
     }
 }

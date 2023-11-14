@@ -17,7 +17,8 @@ class ShowComand extends Command {
             ->addOption('fullPlot', null, InputOption::VALUE_NONE,
                 'Displays the complete plot of the movie, if available.')
             ->addOption('type', null, InputOption::VALUE_OPTIONAL,
-                'Search only movies, series or episodes. [Avalable options: \'movie\', \'series\', \'episode\']', 'movie');
+                'Search only movies, series or episodes. [Avalable options:' .
+                ' \'movie\', \'series\', \'episode\']', 'movie');
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
@@ -28,20 +29,14 @@ class ShowComand extends Command {
             ->addOption('type', 'type')
             ->url;
 
-        [$movieInfo, $statusCode] = $this->getMovieInfo($url, $output);
+        $movieInfo = $this->getMovieInfo($url, $output);
 
-        if (! $movieInfo || $movieInfo->Response !== 'True') {
-
-            $errorMessage = (! $movieInfo) ? 
-                "Oops! Looks like something went wrong ({$statusCode})\n" :
-                "Movie not found!\n";
-
-            $output->writeln($errorMessage);
+        if (! $movieInfo) {
+            $output->writeln('Movie not found!\n');
 
             return EXIT_FAILURE;
         }
 
-        $output->writeln("<info>{$movieInfo->Title} - {$movieInfo->Year}</info>");
         $this->displayAsTable($movieInfo, $output);
 
         return EXIT_SUCCESS;
@@ -54,10 +49,15 @@ class ShowComand extends Command {
         $status = $response->getStatusCode();
 
         if ($status !== 200) {
-            return [null, $status];
+            return null;
         }
 
-        return [new Movie($response), $status];
+        $parsed = json_decode($response->getBody());
+        if ($parsed->Response !== 'True') {
+            return null;
+        }
+
+        return Movie::FromResponse($parsed);
     }
 
     protected function displayAsTable(Movie $movie, OutputInterface $out)
@@ -65,8 +65,8 @@ class ShowComand extends Command {
         $table = new Table($out);
 
         $rows = [
-            ['Title', $movie->Title],
-            ['Year', $movie->Year]
+            ['Title', $movie->title],
+            ['Year', $movie->year]
         ];
 
         foreach($movie->info as $rowTitle => $rowInfo) {
@@ -78,6 +78,7 @@ class ShowComand extends Command {
             $rows[] = [$rowTitle, wordwrap($rowInfo, $max_width)];
         }
 
+        $out->writeln("<info>{$movie->title} - {$movie->year}</info>");
         $table->setRows($rows)
             ->render();
     }
