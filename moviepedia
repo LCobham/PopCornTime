@@ -1,0 +1,19 @@
+#!/usr/bin/env php
+
+<?php
+
+use Acme\ShowComand;
+use Symfony\Component\Console\Application;
+
+require_once 'vendor/autoload.php';
+
+require_once __DIR__ . '/src/constants.php';
+require_once __DIR__ . '/src/functions.php';
+
+loadDotEnv('.env');
+
+$app = new Application('Moviepedia', '1.0');
+
+$app->add(new ShowComand);
+
+$app->run();
